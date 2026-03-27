@@ -2,16 +2,16 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Supabase
+    # Supabase (new key naming: publishable = anon, secret = service_role)
     supabase_url: str = ""
-    supabase_anon_key: str = ""
-    supabase_service_role_key: str = ""
+    supabase_publishable_key: str = ""
+    supabase_secret_key: str = ""
 
     # Anthropic
     anthropic_api_key: str = ""
 
-    # OpenAI (embeddings)
-    openai_api_key: str = ""
+    # Voyage AI (Anthropic's official embedding partner)
+    voyage_api_key: str = ""
 
     # App
     backend_url: str = "http://localhost:8000"

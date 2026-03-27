@@ -9,7 +9,7 @@ from app.agent.parsers import parse_migration_response
 from app.agent.prompt_builder import build_system_prompt
 from app.agent.vision import build_vision_messages
 from app.common.supabase import get_supabase_admin
-from app.detection.service import DetectionService
+from app.detection.patterns import detect_platform_and_format, detect_config_type
 
 
 class MigrationService:
@@ -30,13 +30,8 @@ class MigrationService:
 
         # Auto-detect if content provided
         if source_content:
-            detection_svc = DetectionService()
-            platform_result = __import__(
-                "app.detection.patterns", fromlist=["detect_platform_and_format"]
-            ).detect_platform_and_format(source_content)
-            type_result = __import__(
-                "app.detection.patterns", fromlist=["detect_config_type"]
-            ).detect_config_type(source_content)
+            platform_result = detect_platform_and_format(source_content)
+            type_result = detect_config_type(source_content)
 
             data.update({
                 "source_platform": platform_result["source_platform"],
@@ -119,7 +114,7 @@ class MigrationService:
         session_id: str,
         user_id: str,
         user_message: str,
-        image_data: list[tuple[bytes, str]] | None = None,
+        upload_ids: list[str] | None = None,
     ) -> AsyncGenerator[str, None]:
         """
         Send a message to Claude and stream the response as SSE events.
@@ -133,9 +128,22 @@ class MigrationService:
         # Save user message
         save_message(session_id, "user", user_message)
 
+        # Fetch image data from upload IDs if provided
+        image_data: list[tuple[bytes, str]] = []
+        if upload_ids:
+            from app.uploads.service import UploadService
+            upload_service = UploadService()
+            for uid in upload_ids:
+                try:
+                    file_bytes, mime_type = upload_service.get_file_bytes(uid, user_id)
+                    if mime_type.startswith("image/"):
+                        image_data.append((file_bytes, mime_type))
+                except Exception:
+                    pass
+
         # Build system prompt with preferences + RAG
-        rag_chunks = await self._get_rag_context(user_message, session)
-        system_prompt = await build_system_prompt(
+        rag_chunks = self._get_rag_context(user_message, session)
+        system_prompt = build_system_prompt(
             user_id=user_id,
             source_type=session["source_type"],
             rag_chunks=rag_chunks,
@@ -143,7 +151,13 @@ class MigrationService:
 
         # Send RAG context info
         if rag_chunks:
-            yield f"event: rag\ndata: {json.dumps({'chunks': [{'content': c['content'][:200], 'similarity': c.get('similarity')} for c in rag_chunks]})}\n\n"
+            rag_data = json.dumps({
+                'chunks': [
+                    {'content': c['content'][:200], 'similarity': c.get('similarity')}
+                    for c in rag_chunks
+                ]
+            })
+            yield f"event: rag\ndata: {rag_data}\n\n"
 
         # Build messages
         history = get_conversation_history(session_id)
@@ -164,6 +178,7 @@ class MigrationService:
             with client.stream_message(messages=history, system=system_prompt) as stream:
                 for text in stream.text_stream:
                     full_response += text
+                    # json.dumps ensures proper escaping of newlines/special chars
                     yield f"event: token\ndata: {json.dumps({'text': text})}\n\n"
 
             # Parse the complete response
@@ -217,12 +232,12 @@ class MigrationService:
         except Exception as e:
             yield f"event: error\ndata: {json.dumps({'message': str(e)})}\n\n"
 
-    async def _get_rag_context(self, query: str, session: dict) -> list[dict]:
+    def _get_rag_context(self, query: str, session: dict) -> list[dict]:
         """Retrieve relevant RAG chunks for the query."""
         try:
             from app.rag.service import RAGService
             rag_service = RAGService()
-            chunks = await rag_service.retrieve_context(
+            chunks = rag_service.retrieve_context(
                 query=query,
                 filter_doc_type=None,
                 filter_platform=session.get("source_platform"),

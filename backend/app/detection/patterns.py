@@ -75,11 +75,19 @@ COMPLETE_PIPELINE_PATTERNS: list[tuple[re.Pattern, float]] = [
     (re.compile(r"<project\b"), 0.25),
 ]
 
-# Fragment indicators
+# Fragment indicators (detected by presence of inner constructs WITHOUT top-level wrappers)
+# These are scored dynamically in detect_config_type() instead of using broken negative lookaheads
 FRAGMENT_PATTERNS: list[tuple[re.Pattern, float]] = [
-    (re.compile(r"^(?!.*pipeline\s*\{).*stage\s*\(", re.MULTILINE), 0.3),
-    (re.compile(r"^(?!.*<project).*<build-runner", re.MULTILINE), 0.25),
-    (re.compile(r"^(?!.*project\s*\{).*buildType\s*\{", re.MULTILINE), 0.25),
+    (re.compile(r"stage\s*\("), 0.2),
+    (re.compile(r"<build-runner"), 0.2),
+    (re.compile(r"buildType\s*\{"), 0.2),
+]
+
+# Top-level wrappers that indicate this is NOT a fragment
+FRAGMENT_NEGATION_PATTERNS: list[re.Pattern] = [
+    re.compile(r"pipeline\s*\{"),
+    re.compile(r"<project\b"),
+    re.compile(r"project\s*\{"),
 ]
 
 
@@ -150,6 +158,12 @@ def detect_config_type(content: str) -> dict:
     shared_score, _ = _score_patterns(content, SHARED_LIBRARY_PATTERNS)
     complete_score, _ = _score_patterns(content, COMPLETE_PIPELINE_PATTERNS)
     fragment_score, _ = _score_patterns(content, FRAGMENT_PATTERNS)
+
+    # If any top-level wrapper is present, suppress fragment score
+    for negation in FRAGMENT_NEGATION_PATTERNS:
+        if negation.search(content):
+            fragment_score = 0.0
+            break
 
     scores = {
         "shared_library": shared_score,

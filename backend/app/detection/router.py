@@ -37,7 +37,7 @@ async def detect_pipeline(
     user: UserContext = Depends(get_current_user),
     service: DetectionService = Depends(get_detection_service),
 ):
-    result = await service.detect(body.content, body.filename)
+    result = service.detect(body.content, body.filename)
     return result.to_dict()
 
 

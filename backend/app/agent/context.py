@@ -28,21 +28,26 @@ def get_conversation_history(session_id: str) -> list[dict]:
         # Summarize older messages
         older = messages[:-MAX_MESSAGES_IN_CONTEXT]
         recent = messages[-MAX_MESSAGES_IN_CONTEXT:]
-
         summary = _summarize_older_messages(older)
-        api_messages = [{"role": "user", "content": f"[Previous context summary: {summary}]"}]
-        api_messages.append({"role": "assistant", "content": "I understand the previous context. Let's continue."})
     else:
         recent = messages
-        api_messages = []
+        summary = None
 
-    # Convert to Anthropic format
+    api_messages: list[dict] = []
+
+    # Convert to Anthropic format (must alternate user/assistant)
     for msg in recent:
         if msg["role"] in ("user", "assistant"):
             api_messages.append({
                 "role": msg["role"],
                 "content": msg["content"],
             })
+
+    # Prepend summary to the first user message if we truncated
+    if summary and api_messages and api_messages[0]["role"] == "user":
+        api_messages[0]["content"] = (
+            f"[Previous context summary: {summary}]\n\n{api_messages[0]['content']}"
+        )
 
     return api_messages
 

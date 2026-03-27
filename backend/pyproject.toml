@@ -14,7 +14,7 @@ dependencies = [
     "sse-starlette>=2.1.0",
     "pillow>=10.4.0",
     "slowapi>=0.1.9",
-    "openai>=1.50.0",
+    "voyageai>=0.3.0",
     "tiktoken>=0.7.0",
     "python-jose[cryptography]>=3.3.0",
 ]

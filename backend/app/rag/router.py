@@ -17,7 +17,7 @@ async def upload_document(
     user: UserContext = Depends(require_admin),
     service: RAGService = Depends(get_rag_service),
 ):
-    result = await service.ingest_document(
+    result = service.ingest_document(
         doc_type=body.doc_type,
         content=body.content,
         title=body.title,
@@ -55,7 +55,7 @@ async def search_documents(
     user: UserContext = Depends(get_current_user),
     service: RAGService = Depends(get_rag_service),
 ):
-    results = await service.retrieve_context(
+    results = service.retrieve_context(
         query=body.query,
         filter_doc_type=body.doc_type,
         filter_platform=body.source_platform,

@@ -1,21 +1,27 @@
 """Anthropic Claude API wrapper with streaming support."""
 
-from collections.abc import AsyncGenerator
+import time
 
 import anthropic
 
 from app.config import settings
 from app.common.supabase import get_supabase_admin
 
+CONFIG_CACHE_TTL_SECONDS = 300  # 5 minutes
+
 
 class ClaudeClient:
     def __init__(self):
         self.client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         self._config_cache: dict | None = None
+        self._config_cache_time: float = 0.0
 
     def _get_ai_config(self) -> dict:
-        """Load AI config from database (admin-configured)."""
-        if self._config_cache is not None:
+        """Load AI config from database (admin-configured). Cached with TTL."""
+        if (
+            self._config_cache is not None
+            and (time.monotonic() - self._config_cache_time) < CONFIG_CACHE_TTL_SECONDS
+        ):
             return self._config_cache
 
         try:
@@ -25,6 +31,7 @@ class ClaudeClient:
             for row in rows.data:
                 config[row["key"]] = row["value"]["value"]
             self._config_cache = config
+            self._config_cache_time = time.monotonic()
             return config
         except Exception:
             return {
@@ -35,6 +42,7 @@ class ClaudeClient:
 
     def invalidate_config_cache(self):
         self._config_cache = None
+        self._config_cache_time = 0.0
 
     def stream_message(
         self,

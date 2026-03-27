@@ -5,6 +5,9 @@ from abc import ABC, abstractmethod
 
 import tiktoken
 
+# Cache the tokenizer encoding globally to avoid reloading on every chunk call
+_encoding = tiktoken.get_encoding("cl100k_base")
+
 
 class Chunk:
     def __init__(self, content: str, metadata: dict | None = None, token_count: int = 0):
@@ -23,7 +26,7 @@ class JenkinsGroovyChunker(ChunkingStrategy):
     """Splits Jenkins pipelines on stage boundaries, keeping pipeline-level context."""
 
     def chunk(self, content: str, chunk_size: int = 512, chunk_overlap: int = 64) -> list[Chunk]:
-        enc = tiktoken.get_encoding("cl100k_base")
+        enc = _encoding
         chunks = []
 
         # Extract pipeline-level context header (agent, environment, options)
@@ -82,7 +85,7 @@ class TeamCityKotlinChunker(ChunkingStrategy):
     """Splits TeamCity Kotlin DSL on buildType / vcsRoot / object boundaries."""
 
     def chunk(self, content: str, chunk_size: int = 512, chunk_overlap: int = 64) -> list[Chunk]:
-        enc = tiktoken.get_encoding("cl100k_base")
+        enc = _encoding
         chunks = []
 
         # Extract project-level header
@@ -131,7 +134,7 @@ class TeamCityXMLChunker(ChunkingStrategy):
     """Splits TeamCity XML configs on element boundaries."""
 
     def chunk(self, content: str, chunk_size: int = 512, chunk_overlap: int = 64) -> list[Chunk]:
-        enc = tiktoken.get_encoding("cl100k_base")
+        enc = _encoding
         chunks = []
 
         # Split on major XML elements
@@ -169,7 +172,7 @@ class MarkdownDocChunker(ChunkingStrategy):
     """Splits documentation on heading boundaries."""
 
     def chunk(self, content: str, chunk_size: int = 512, chunk_overlap: int = 64) -> list[Chunk]:
-        enc = tiktoken.get_encoding("cl100k_base")
+        enc = _encoding
         chunks = []
 
         # Split on headings
@@ -203,7 +206,7 @@ class FallbackChunker(ChunkingStrategy):
     """Token-based sliding window with overlap. Used as fallback."""
 
     def chunk(self, content: str, chunk_size: int = 512, chunk_overlap: int = 64) -> list[Chunk]:
-        enc = tiktoken.get_encoding("cl100k_base")
+        enc = _encoding
         tokens = enc.encode(content)
         chunks = []
 

@@ -4,7 +4,7 @@ from app.agent.prompts import SYSTEM_PROMPT_BASE, SOURCE_CONTEXT_MAP
 from app.common.supabase import get_supabase_admin
 
 
-async def build_system_prompt(
+def build_system_prompt(
     user_id: str,
     source_type: str,
     rag_chunks: list[dict] | None = None,
@@ -24,7 +24,7 @@ async def build_system_prompt(
         parts.append(source_context)
 
     # Layer 3: User preferences
-    preferences_block = await _build_preferences_block(user_id)
+    preferences_block = _build_preferences_block(user_id)
     if preferences_block:
         parts.append(preferences_block)
 
@@ -37,7 +37,7 @@ async def build_system_prompt(
     return "\n\n".join(parts)
 
 
-async def _build_preferences_block(user_id: str) -> str:
+def _build_preferences_block(user_id: str) -> str:
     """Load active user preferences and format as a prompt section."""
     try:
         supabase = get_supabase_admin()

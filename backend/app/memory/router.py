@@ -71,5 +71,5 @@ async def extract_preferences_from_session(
         .execute()
     ).data or []
 
-    results = await service.extract_preferences_with_ai(user.id, messages)
+    results = service.extract_preferences_with_ai(user.id, messages)
     return {"extracted": len(results), "preferences": results}

@@ -4,7 +4,7 @@ import json
 
 from app.common.supabase import get_supabase_admin
 from app.rag.chunking import get_chunker
-from app.rag.embedding import generate_embedding, generate_embeddings_batch
+from app.rag.embedding import generate_embeddings_batch, generate_query_embedding
 
 
 class RAGService:
@@ -27,7 +27,7 @@ class RAGService:
                 "similarity_threshold": {"value": 0.75},
             }
 
-    async def ingest_document(
+    def ingest_document(
         self,
         doc_type: str,
         content: str,
@@ -66,7 +66,7 @@ class RAGService:
 
         # Generate embeddings in batch
         chunk_texts = [c.content for c in chunks]
-        embeddings = await generate_embeddings_batch(chunk_texts)
+        embeddings = generate_embeddings_batch(chunk_texts)
 
         # Store chunks with embeddings
         chunk_records = []
@@ -84,7 +84,7 @@ class RAGService:
 
         return doc_result.data[0]
 
-    async def retrieve_context(
+    def retrieve_context(
         self,
         query: str,
         filter_doc_type: str | None = None,
@@ -98,7 +98,7 @@ class RAGService:
         threshold = threshold or config.get("similarity_threshold", {}).get("value", 0.75)
 
         # Generate query embedding
-        query_embedding = await generate_embedding(query)
+        query_embedding = generate_query_embedding(query)
 
         # Call the similarity search function
         result = self.supabase.rpc(
@@ -146,7 +146,7 @@ class RAGService:
         """Delete a document and its chunks (cascade)."""
         self.supabase.table("documents").delete().eq("id", doc_id).execute()
 
-    async def auto_ingest_migration(
+    def auto_ingest_migration(
         self, session_id: str, user_id: str
     ) -> dict | None:
         """Auto-ingest a successful migration as a RAG document."""
@@ -181,7 +181,7 @@ class RAGService:
             "config_type": session.get("config_type"),
         })
 
-        return await self.ingest_document(
+        return self.ingest_document(
             doc_type="migration_result",
             content=combined,
             title=session.get("title", f"Migration {session_id[:8]}"),

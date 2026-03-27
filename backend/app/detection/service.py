@@ -1,9 +1,7 @@
 """Detection service: Tier 1 heuristic + Tier 2 AI fallback."""
 
 import json
-import anthropic
 
-from app.config import settings
 from app.common.supabase import get_supabase_admin
 from app.detection.patterns import detect_platform_and_format, detect_config_type
 
@@ -42,7 +40,7 @@ class DetectionService:
     def __init__(self):
         self.supabase = get_supabase_admin()
 
-    async def detect(
+    def detect(
         self, content: str, filename: str | None = None
     ) -> DetectionResult:
         """Run Tier 1 heuristic detection, fall back to AI if low confidence."""
@@ -65,9 +63,9 @@ class DetectionService:
             )
 
         # Tier 2: AI fallback
-        return await self._detect_with_ai(content, filename, platform_result)
+        return self._detect_with_ai(content, filename, platform_result)
 
-    async def _detect_with_ai(
+    def _detect_with_ai(
         self, content: str, filename: str | None, heuristic_hint: dict
     ) -> DetectionResult:
         """Use Claude to classify ambiguous pipeline configurations."""
@@ -105,11 +103,14 @@ Respond with ONLY a JSON object:
 }}"""
 
         try:
-            client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-            response = client.messages.create(
+            from app.agent.client import get_claude_client
+            client = get_claude_client()
+            response = client.create_message(
+                messages=[{"role": "user", "content": prompt}],
+                system="You classify CI/CD pipeline configurations. Return only valid JSON.",
                 model=model,
                 max_tokens=200,
-                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
             )
 
             text = response.content[0].text.strip()

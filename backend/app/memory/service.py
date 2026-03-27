@@ -146,7 +146,7 @@ class MemoryService:
                 extracted.append(pref)
         return extracted
 
-    async def extract_preferences_with_ai(
+    def extract_preferences_with_ai(
         self, user_id: str, conversation_messages: list[dict]
     ) -> list[dict]:
         """Use Claude to extract implicit preferences from a conversation."""

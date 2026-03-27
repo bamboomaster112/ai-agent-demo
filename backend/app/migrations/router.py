@@ -88,5 +88,6 @@ async def send_message(
             session_id=session_id,
             user_id=user.id,
             user_message=body.content,
+            upload_ids=body.upload_ids or None,
         )
     )

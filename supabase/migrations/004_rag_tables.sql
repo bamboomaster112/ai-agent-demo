@@ -26,7 +26,7 @@ CREATE TABLE public.document_chunks (
     chunk_index     INTEGER NOT NULL,
     content         TEXT NOT NULL,
     token_count     INTEGER,
-    embedding       vector(1536),
+    embedding       vector(1024),
     metadata        JSONB DEFAULT '{}',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -54,7 +54,7 @@ INSERT INTO public.rag_config (key, value) VALUES
     ('chunk_overlap', '{"tokens": 64}'),
     ('top_k', '{"value": 5}'),
     ('similarity_threshold', '{"value": 0.75}'),
-    ('embedding_model', '{"value": "text-embedding-3-small"}');
+    ('embedding_model', '{"value": "voyage-3.5"}');
 
 -- RLS
 ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
@@ -93,7 +93,7 @@ CREATE POLICY "admins_update_rag_config" ON public.rag_config
 
 -- Similarity search function
 CREATE OR REPLACE FUNCTION match_document_chunks(
-    query_embedding vector(1536),
+    query_embedding vector(1024),
     match_threshold FLOAT DEFAULT 0.75,
     match_count INT DEFAULT 5,
     filter_doc_type TEXT DEFAULT NULL,
