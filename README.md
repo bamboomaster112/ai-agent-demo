@@ -54,6 +54,18 @@ npm run dev
 docker-compose up --build
 ```
 
+## Documentation
+
+Detailed setup and architecture guides are in the [`docs/`](docs/) folder:
+
+| Guide | Description |
+|-------|-------------|
+| [Local Development Setup](docs/setup-local.md) | Step-by-step guide for running locally |
+| [Docker Setup](docs/setup-docker.md) | Running the full stack with Docker Compose |
+| [Supabase Setup](docs/supabase-setup.md) | Database migrations, Storage bucket, admin tasks |
+| [Environment Variables](docs/environment-variables.md) | Complete reference for all configuration |
+| [Architecture](docs/architecture.md) | System design, request flows, module map |
+
 ## Environment Variables
 
 ### Backend (`.env`)
